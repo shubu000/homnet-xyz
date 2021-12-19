@@ -1,0 +1,75 @@
+version: "3.4"
+services:
+  broker:
+    image: redis:latest
+    restart: unless-stopped
+    networks:
+      paperless-backend:
+        ipv4_address: 192.168.201.3
+
+  webserver:
+    image: jonaswinkler/paperless-ng:latest
+    restart: unless-stopped
+    depends_on:
+      - broker
+      - gotenberg
+      - tika
+    ports:
+      - 8008:8000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    volumes:
+      - ${APPS_DIRECTORY}/paperless/data:/usr/src/paperless/data
+      - ${APPS_DIRECTORY}/paperless/media:/usr/src/paperless/media
+      - ${APPS_DIRECTORY}/paperless/export:/usr/src/paperless/export
+      - ${APPS_DIRECTORY}/paperless/consume:/usr/src/paperless/consume
+    environment:
+      PAPERLESS_REDIS: redis://broker:6379
+      PAPERLESS_TIKA_ENABLED: 1
+      PAPERLESS_TIKA_GOTENBERG_ENDPOINT: http://gotenberg:3000
+      PAPERLESS_TIKA_ENDPOINT: http://tika:9998
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.paperless.rule=Host(`${PAPERLESS_HOST}`)
+      - traefik.http.routers.paperless.tls=true
+      - traefik.http.services.paperless.loadbalancer.server.scheme=http
+      - traefik.http.services.paperless.loadbalancer.server.port=8000
+      - traefik.docker.network=traefik-proxy
+      #- traefik.http.routers.paperless-secure.entrypoints=https
+      - com.centurylinklabs.watchtower.enable=true
+    networks:
+      traefik-proxy:
+        ipv4_address: 192.168.200.8
+      paperless-backend:
+        ipv4_address: 192.168.201.2
+
+  gotenberg:
+    image: thecodingmachine/gotenberg
+    restart: unless-stopped
+    environment:
+      DISABLE_GOOGLE_CHROME: 1
+    networks:
+      paperless-backend:
+        ipv4_address: 192.168.201.4
+    labels:
+    - com.centurylinklabs.watchtower.enable=true
+
+  tika:
+    image: apache/tika
+    restart: unless-stopped
+    networks:
+      paperless-backend:
+        ipv4_address: 192.168.201.5
+    labels:
+    - com.centurylinklabs.watchtower.enable=true
+
+networks:
+  traefik-proxy:
+    external: true
+  paperless-backend:
+    ipam:
+      config:
+      - subnet: 192.168.201.0/29

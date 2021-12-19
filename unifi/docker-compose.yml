@@ -1,0 +1,37 @@
+version: "3"
+services:
+  unifi:
+    image: linuxserver/unifi-controller
+    container_name: unifi
+    restart: unless-stopped
+    volumes:
+      - ${APPS_DIRECTORY}/unifi:/config
+    networks:
+      - traefik-proxy
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik-proxy
+      - traefik.http.routers.ubiq.service=ubiq
+      - traefik.http.routers.ubiq.entrypoints=websecure
+      - traefik.http.routers.ubiq.rule=Host(`${UNIFI_HOST}`)
+      # - traefik.http.routers.ubiq.tls=true
+      # - traefik.http.routers.ubiq.tls.certresolver=letsencrypt
+      - traefik.http.services.ubiq.loadbalancer.server.scheme=https
+      - traefik.http.services.ubiq.loadbalancer.server.port=8443
+      - com.centurylinklabs.watchtower.enable=true
+      
+      
+
+    ports:
+      - 8080:8080
+      - 3478:3478/udp
+    environment:
+      - PUID=1313
+      - PGID=1313
+      - TZ=${TIME_ZONE}
+
+networks:
+  traefik-proxy:
+    external: true
+  default:
+    driver: bridge

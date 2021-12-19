@@ -1,0 +1,29 @@
+version: "3"
+services:
+  unifi:
+    image: lscr.io/linuxserver/heimdall
+    container_name: heimdall
+    restart: unless-stopped
+    volumes:
+      - /home/docker/apps/heimdall:/config
+    networks:
+      - traefik-proxy
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik-proxy
+      - traefik.http.routers.heimdall.entrypoints=websecure
+      - traefik.http.routers.heimdall.rule=Host(`${HEIMDALL_HOST}`)
+      - traefik.http.routers.heimdall.tls.certresolver=letsencrypt
+      - traefik.http.services.heimdall.loadbalancer.server.scheme=https
+      - traefik.http.services.heimdall.loadbalancer.server.port=443
+      #- traefik.http.routesr.heimdall.middlewares=traefik-auth
+      - com.centurylinklabs.watchtower.enable=true
+    ports:
+      - 6080:8080
+      - 60443:443
+    environment:
+      - TZ=${TIME_ZONE}
+
+networks:
+  traefik-proxy:
+    external: true
