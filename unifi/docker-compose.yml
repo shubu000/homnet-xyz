@@ -18,6 +18,7 @@ services:
       # - traefik.http.routers.ubiq.tls.certresolver=letsencrypt
       - traefik.http.services.ubiq.loadbalancer.server.scheme=https
       - traefik.http.services.ubiq.loadbalancer.server.port=8443
+      - traefik.tcp.services.ubiq.loadbalancer.server.port=8080
       - com.centurylinklabs.watchtower.enable=true
       
       
